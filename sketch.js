@@ -45,18 +45,41 @@ function draw() {
   if (hands.length > 0) {
     for (let hand of hands) {
       if (hand.confidence > 0.1) {
+        // 取得原始影片尺寸（若影片載入初期為空，則預設為 640x480）
+        let vW = video.width || 640;
+        let vH = video.height || 480;
+
+        // 預先計算所有轉換後的節點座標
+        let mappedPoints = [];
+        for (let i = 0; i < hand.keypoints.length; i++) {
+          let kp = hand.keypoints[i];
+          mappedPoints.push({
+            x: offsetX + (kp.x / vW) * imgW,
+            y: offsetY + (kp.y / vH) * imgH
+          });
+        }
+
+        // 畫出手指骨架連線
+        stroke(0, 255, 0); // 設定連線為綠色
+        strokeWeight(3);
+        let connections = [
+          [0, 1, 2, 3, 4],    // 拇指
+          [5, 6, 7, 8],       // 食指
+          [9, 10, 11, 12],    // 中指
+          [13, 14, 15, 16],   // 無名指
+          [17, 18, 19, 20]    // 小指
+        ];
+        
+        for (let conn of connections) {
+          for (let j = 0; j < conn.length - 1; j++) {
+            let pA = mappedPoints[conn[j]];
+            let pB = mappedPoints[conn[j + 1]];
+            line(pA.x, pA.y, pB.x, pB.y);
+          }
+        }
+
         // Loop through keypoints and draw circles
         for (let i = 0; i < hand.keypoints.length; i++) {
-          let keypoint = hand.keypoints[i];
-
-          // 取得原始影片尺寸（若影片載入初期為空，則預設為 640x480）
-          let vW = video.width || 640;
-          let vH = video.height || 480;
-
-          // 核心修改：將手部節點的原始座標，轉換至縮放且置中後的影像位置上
-          let mappedX = offsetX + (keypoint.x / vW) * imgW;
-          let mappedY = offsetY + (keypoint.y / vH) * imgH;
-
           // Color-code based on left or right hand
           if (hand.handedness == "Left") {
             fill(255, 0, 255);
@@ -65,7 +88,7 @@ function draw() {
           }
 
           noStroke();
-          circle(mappedX, mappedY, 16);
+          circle(mappedPoints[i].x, mappedPoints[i].y, 16);
         }
       }
     }
